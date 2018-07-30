@@ -1,0 +1,34 @@
+inherit_from: ../.rubocop.yml
+
+# This cop does not like rspec dsl syntax https://github.com/bbatsov/rubocop/pull/4237#issuecomment-291408032
+Lint/AmbiguousBlockAssociation:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 170
+
+RSpec/AnyInstance:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Max: 100
+
+# Disabling the ExpectInHook cop can make testing similar preconditions with only slightly test differences easier
+RSpec/ExpectInHook:
+  Enabled: false
+
+RSpec/MessageSpies:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 5
+
+RSpec/SubjectStub:
+  Exclude:
+    - 'cacheable/cacheable_spec.rb'

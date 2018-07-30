@@ -1,0 +1,13 @@
+*.gem
+/.config
+/tmp/
+
+# Used by dotenv library to load environment variables.
+.env
+.rvmrc
+
+# Because macs
+.DS_Store
+
+#RSpec
+spec/examples.txt

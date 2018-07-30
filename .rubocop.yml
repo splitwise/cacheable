@@ -1,0 +1,26 @@
+require: 'rubocop-rspec'
+
+AllCops:
+  TargetRubyVersion: 2.3
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: no_space
+
+Metrics/LineLength:
+  Max: 120
+  IgnoredPatterns: ['#.*']
+Metrics/MethodLength:
+  Max: 25
+
+Style/Documentation:
+  Enabled: false
+Style/FrozenStringLiteralComment:
+  Enabled: false
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: '()' # covers `%q`, `%Q`, `%s`, and `%x`
+    '%r': '{}'
+    '%w': '[]'
+    '%W': '[]'
+    '%i': '[]'
+    '%I': '[]'

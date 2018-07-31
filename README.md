@@ -2,7 +2,7 @@
 
 By [Splitwise](https://www.splitwise.com)
 
-Cacheable is a gem which intends to adds method caching in an [aspect-oriented programming (AOP)](https://en.wikipedia.org/wiki/Aspect-oriented_programming) fashion in Ruby. Its core goals are:
+Cacheable is a gem which intends to add method caching in an [aspect-oriented programming (AOP)](https://en.wikipedia.org/wiki/Aspect-oriented_programming) fashion in Ruby. Its core goals are:
 
 * ease of use (method annotation)
 * flexibility (simple adaptablability for any cache backend)

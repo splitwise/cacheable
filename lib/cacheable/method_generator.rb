@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'english'
+require 'English'
 
 module Cacheable
   module MethodGenerator

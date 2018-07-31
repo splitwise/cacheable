@@ -2,7 +2,7 @@
 
 A cache adapter is an object that Cacheable can use as an interface to your system's cache. Cacheable will work out of the box using the object returned by `Rails.cache` as a cache adapter.
 
-The other adapter provided with the library is the [Memory Adapter](lib/cacheable/cache_adapters/memory_adapter.rb). Is a simple memoizing cache used in testing. It is little more than an object that conforms to the protocol and is backed by a Ruby Hash. When writting a new cache adapter it can be used as a template.
+The other adapter provided with the library is the [Memory Adapter](lib/cacheable/cache_adapters/memory_adapter.rb). Is a simple memoizing cache used in testing. It is little more than an object that conforms to the protocol and is backed by a Ruby Hash. When writing a new cache adapter it can be used as a template.
 
 ### Protocol
 
@@ -16,7 +16,7 @@ There are only two methods the cache adapter protocol requires.
 
 #### `delete(key)`
 
-`delete` takes a key and removes it's associated value in the cache. While not currently dependend on by Cacheable, it appears the standard is to return `true` if the value was present and removed and `false` if not present to begin with.
+`delete` takes a key and removes it's associated value in the cache. While not currently depended on by Cacheable, it appears the standard is to return `true` if the value was present and removed and `false` if not present to begin with.
 
 #### Additional useful methods
 

@@ -11,3 +11,6 @@
 
 #RSpec
 spec/examples.txt
+
+#Rubymine
+.idea

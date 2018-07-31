@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.describe Cacheable do
   subject(:cacheable_object) { cacheable_class.new }
 

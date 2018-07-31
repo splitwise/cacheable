@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.describe Cacheable::CacheAdapter do
   subject(:adapter_object) { Class.new { extend(Cacheable::CacheAdapter) } }
 

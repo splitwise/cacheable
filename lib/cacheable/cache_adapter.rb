@@ -15,12 +15,12 @@ module Cacheable
     end
 
     def cache_adapter=(name_or_adapter)
-      @_cache_adapter = interprete_adapter(name_or_adapter)
+      @_cache_adapter = interpret_adapter(name_or_adapter)
     end
 
     private
 
-    def interprete_adapter(name_or_adapter)
+    def interpret_adapter(name_or_adapter)
       return name_or_adapter if cache_adapter?(name_or_adapter)
 
       unless [Symbol, String].include?(name_or_adapter.class)

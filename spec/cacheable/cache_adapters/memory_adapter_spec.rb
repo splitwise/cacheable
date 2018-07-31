@@ -1,4 +1,3 @@
-require 'spec_helper'
 require 'cacheable/cache_adapters/memory_adapter'
 
 RSpec.describe Cacheable::CacheAdapters::MemoryAdapter do

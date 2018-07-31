@@ -5,10 +5,10 @@ By [Splitwise](https://www.splitwise.com)
 Cacheable is a gem which intends to add method caching in an [aspect-oriented programming (AOP)](https://en.wikipedia.org/wiki/Aspect-oriented_programming) fashion in Ruby. Its core goals are:
 
 * ease of use (method annotation)
-* flexibility (simple adaptablability for any cache backend)
+* flexibility (simple adaptability for any cache backend)
 * portability (plain Ruby for use with any framework)
 
-While Rails is not a requirement, Cacheable was built inside a mature Rails app and later extracted. This first release will seemlyless work in Rails and only includes an adapter for an in-memory cache backed by a simple Hash. This may be enough for you needs but it is more likely that additional cache adapters will need to be written.
+While Rails is not a requirement, Cacheable was built inside a mature Rails app and later extracted. This first release will seamlessly work in Rails and only includes an adapter for an in-memory cache backed by a simple Hash. This may be enough for your needs but it is more likely that additional cache adapters will need to be written.
 
 See more about [Cache Adapters](cache-adapters.md).
 
@@ -32,7 +32,7 @@ Cacheable.cache_adapter = :memory
 
 ### Simple Implementation Example
 
-Cacheable is designed to work seemlessly with your already existings codebase. Consider the following contrived class:
+Cacheable is designed to work seamlessly with your already existing codebase. Consider the following contrived class:
 
 ```ruby
 class SimpleExample
@@ -62,7 +62,7 @@ class SimpleExample
 end
 ```
 
-**Thats it!** There's some complex Ruby magic going on under the hood but to the end user you can simply call `expensive_calculation` and the result will be retreived from the cache, if available, or generated and placed into the cache. To confirm it is working, fire up an IRB console try the following:
+**That's it!** There's some complex Ruby magic going on under the hood but to the end user you can simply call `expensive_calculation` and the result will be retrieved from the cache, if available, or generated and placed into the cache. To confirm it is working, fire up an IRB console try the following:
 
 ```irb
 > s = SimpleExample.new
@@ -81,7 +81,7 @@ Cacheable also adds two useful methods to your class.
 
 #### Skip the Cache via `#{method}_without_cache`
 
-The cache can intentionally be skipped by appending `_without_cache` to the method name. This invocation with neither check the cache nor populate it as if you called the original method and never used Cacheable.
+The cache can intentionally be skipped by appending `_without_cache` to the method name. This invocation will neither check the cache nor populate it.  It is as if you called the original method and never used Cacheable.
 
 ```irb
 > s = SimpleExample.new
@@ -95,7 +95,7 @@ beginning expensive method
 
 #### Remove the Value via `clear_#{method}_cache`
 
-The cache can be cleared at any time by calling `clear_#{your_method_name}_cache`.
+The cached value can be cleared at any time by calling `clear_#{your_method_name}_cache`.
 
 ```irb
 > s = SimpleExample.new
@@ -151,7 +151,7 @@ So if we called `CustomKeyExample.new.my_method(123)` we would get the cache key
 
 `"my_method called on #<CustomKeyExample:0x0…0> with Integer::123"`.
 
-### Conditional Cacheing
+### Conditional Caching
 
 You can control if a method should be cached by supplying a proc to the `unless:` option which will get the same arguments as `key_format:`. Alternatively this method can be defined on the class and a symbol of the name of the method can be passed. **Note**: When using a symbol, the first argument will not be passed but will be available in the method as `self`. The following example will not cache the value if the first argument to the method is `false`.
 
@@ -189,7 +189,7 @@ cacheable :these, :methods, :share, :options, key_format: key_proc, unless: unle
 cacheable :this_method_has_its_own_options, unless: unless_proc2
 ```
 
-### Class Method Cacheing
+### Class Method Caching
 
 You can cache class methods just as easily as a Ruby class is just an instance of `Class`. You simply need to `include Cacheable` within the `class << self` block. Methods can be defined in this block or outside using the `def self.` syntax.
 

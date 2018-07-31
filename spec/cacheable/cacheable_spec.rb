@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.describe Cacheable do
   subject(:cacheable_object) { cacheable_class.new }
 
@@ -231,8 +229,8 @@ RSpec.describe Cacheable do
     end
   end
 
-  describe 'syntatic sugar' do
-    it 'allows cachable to be used before the method is defined' do
+  describe 'syntactic sugar' do
+    it 'allows cacheable to be used before the method is defined' do
       cacheable_called_before_definition = :cacheable_called_before_definition
       inner_method = cacheable_method_inner
       cacheable_class.class_eval do

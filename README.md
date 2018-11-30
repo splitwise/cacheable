@@ -82,7 +82,7 @@ Fetching data from GitHub
 > a.star_count
  => 2
 
-# Notice that the `puts` was not output the 2nd time the method was invoked.
+# Notice that "Fetching data from GitHub" was not output the 2nd time the method was invoked.
 # The network call and result parsing would also not be performed again.
 ```
 

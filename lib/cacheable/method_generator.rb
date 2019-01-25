@@ -13,7 +13,7 @@ module Cacheable
     private
 
     def method_interceptor_module_name
-      class_name = name || to_s.gsub(/[^a-zA-Z_0-9]/, '')
+      class_name = name&.gsub(/:/, '') || to_s.gsub(/[^a-zA-Z_0-9]/, '')
       "#{class_name}Cacher"
     end
 

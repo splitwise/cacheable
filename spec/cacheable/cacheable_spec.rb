@@ -133,7 +133,7 @@ RSpec.describe Cacheable do
               end
 
               def inner_method
-                puts 'inner_method'
+                'inner_method'
               end
             end
           end

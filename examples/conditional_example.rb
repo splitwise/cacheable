@@ -5,7 +5,7 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, unless: :growing_fast?, key_format: -> (target, method_name, method_args) do
+  cacheable :star_count, unless: :growing_fast?, key_format: ->(target, method_name, method_args) do
     [target.class, method_name, method_args.first].join('/')
   end
 

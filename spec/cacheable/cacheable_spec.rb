@@ -117,6 +117,34 @@ RSpec.describe Cacheable do
         end
       end
     end
+
+    context 'when classes are nested' do
+      it 'correctly names interceptor modules' do
+        expect do
+          class Outer
+            class Inner
+              include Cacheable
+
+              cacheable :outer_method
+
+              def outer_method
+                inner_method
+                'outer_method'
+              end
+
+              def inner_method
+                puts 'inner_method'
+              end
+            end
+          end
+        end.not_to raise_error
+
+        cacheable_instance = Outer::Inner.new
+        expect(cacheable_instance).to receive(:inner_method).once.and_call_original
+
+        2.times { cacheable_instance.outer_method }
+      end
+    end
   end
 
   describe 'interceptor module' do

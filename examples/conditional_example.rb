@@ -24,13 +24,13 @@ end
 a = GitHubApiAdapter.new
 a.star_count('tokenautocomplete')
 # Fetching data from GitHub for tokenautocomplete
-# => 1142
+# => 1164
 a.star_count('tokenautocomplete')
-# => 1142
+# => 1164
 
 a.star_count('cacheable')
 # Fetching data from GitHub for cacheable
-# => 2
+# => 19
 a.star_count('cacheable')
 # Fetching data from GitHub for cacheable
-# => 2
+# => 19

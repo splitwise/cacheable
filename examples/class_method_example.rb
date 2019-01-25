@@ -29,12 +29,12 @@ end
 
 GitHubApiAdapter.star_count_for_cacheable
 # Fetching data from GitHub for cacheable
-# => 2
+# => 19
 GitHubApiAdapter.star_count_for_cacheable
-# => 2
+# => 19
 
 GitHubApiAdapter.star_count_for_tokenautocomplete
 # Fetching data from GitHub for tokenautocomplete
-# => 1142
+# => 1164
 GitHubApiAdapter.star_count_for_tokenautocomplete
-# => 1142
+# => 1164

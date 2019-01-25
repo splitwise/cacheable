@@ -5,7 +5,7 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, key_format: -> (target, method_name, method_args) do
+  cacheable :star_count, key_format: ->(target, method_name, method_args) do
     [target.class, method_name, method_args.first, Time.now.strftime('%Y-%m-%d')].join('/')
   end
 
@@ -20,11 +20,11 @@ end
 a = GitHubApiAdapter.new
 a.star_count('cacheable')
 # Fetching data from GitHub for cacheable
-# => 2
+# => 19
 a.star_count('cacheable')
-# => 2
+# => 19
 a.star_count('tokenautocomplete')
 # Fetching data from GitHub for tokenautocomplete
-# => 1142
+# => 1164
 a.star_count('tokenautocomplete')
-# => 1142
+# => 1164

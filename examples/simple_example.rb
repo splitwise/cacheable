@@ -8,7 +8,7 @@ class GitHubApiAdapter
   cacheable :star_count
 
   def star_count
-    puts "Fetching data from GitHub"
+    puts 'Fetching data from GitHub'
     url = 'https://api.github.com/repos/splitwise/cacheable'
 
     JSON.parse(Net::HTTP.get(URI.parse(url)))['stargazers_count']
@@ -18,18 +18,18 @@ end
 a = GitHubApiAdapter.new
 a.star_count
 # Fetching data from GitHub
-# => 2
+# => 19
 a.star_count
-# => 2
+# => 19
 
 a.star_count_without_cache
 # Fetching data from GitHub
-# => 2
+# => 19
 a.star_count
-# => 2
+# => 19
 
 a.clear_star_count_cache
 # => true
 a.star_count
 # Fetching data from GitHub
-# => 2
+# => 19

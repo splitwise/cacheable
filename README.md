@@ -40,7 +40,7 @@ require 'net/http'
 
 class GitHubApiAdapter
   def star_count
-    puts "Fetching data from GitHub"
+    puts 'Fetching data from GitHub'
     url = 'https://api.github.com/repos/splitwise/cacheable'
 
     JSON.parse(Net::HTTP.get(URI.parse(url)))['stargazers_count']
@@ -63,7 +63,7 @@ class GitHubApiAdapter
   cacheable :star_count
 
   def star_count
-    puts "Fetching data from GitHub"
+    puts 'Fetching data from GitHub'
     url = 'https://api.github.com/repos/splitwise/cacheable'
 
 
@@ -78,9 +78,9 @@ end
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 2
+ => 19
 > a.star_count
- => 2
+ => 19
 
 # Notice that "Fetching data from GitHub" was not output the 2nd time the method was invoked.
 # The network call and result parsing would also not be performed again.
@@ -98,12 +98,12 @@ The cache can intentionally be skipped by appending `_without_cache` to the meth
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 2
+ => 19
 > a.star_count_without_cache
 Fetching data from GitHub
- => 2
+ => 19
 > a.star_count
- => 2
+ => 19
 ```
 
 #### Remove the Value via `clear_#{method}_cache`
@@ -114,15 +114,15 @@ The cached value can be cleared at any time by calling `clear_#{your_method_name
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 2
+ => 19
 > a.star_count
- => 2
+ => 19
 
 > a.clear_star_count_cache
  => true
 > a.star_count
 Fetching data from GitHub
- => 2
+ => 19
 ```
 
 ## Additional Configuration
@@ -151,7 +151,7 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, key_format: -> (target, method_name, method_args) do
+  cacheable :star_count, key_format: ->(target, method_name, method_args) do
     [target.class, method_name, method_args.first, Time.now.strftime('%Y-%m-%d')].join('/')
   end
 
@@ -176,14 +176,14 @@ In addition, we're including the current date in the cache key so calling this m
 > a = GitHubApiAdapter.new
 > a.star_count('cacheable')
 Fetching data from GitHub for cacheable
- => 2
+ => 19
 > a.star_count('cacheable')
- => 2
+ => 19
 > a.star_count('tokenautocomplete')
 Fetching data from GitHub for tokenautocomplete
- => 1142
+ => 1164
 > a.star_count('tokenautocomplete')
- => 1142
+ => 1164
 
  # In this example the follow cache keys are generated:
  # GitHubApiAdapter/star_count/cacheable/2018-09-21
@@ -204,7 +204,7 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, unless: :growing_fast?, key_format: -> (target, method_name, method_args) do
+  cacheable :star_count, unless: :growing_fast?, key_format: ->(target, method_name, method_args) do
     [target.class, method_name, method_args.first].join('/')
   end
 
@@ -227,16 +227,16 @@ Cacheable is new so we don't want to cache the number of stars it has as we expe
 > a = GitHubApiAdapter.new
 > a.star_count('tokenautocomplete')
 Fetching data from GitHub for tokenautocomplete
- => 1142
+ => 1164
 a.star_count('tokenautocomplete')
- => 1142
+ => 1164
 
 > a.star_count('cacheable')
 Fetching data from GitHub for cacheable
- => 2
+ => 19
 > a.star_count('cacheable')
 Fetching data from GitHub for cacheable
- => 2
+ => 19
 ```
 
 ### Cache Options
@@ -298,15 +298,15 @@ end
 ```irb
 > GitHubApiAdapter.star_count_for_cacheable
 Fetching data from GitHub for cacheable
- => 2
+ => 19
 > GitHubApiAdapter.star_count_for_cacheable
- => 2
+ => 19
 
 > GitHubApiAdapter.star_count_for_tokenautocomplete
 Fetching data from GitHub for tokenautocomplete
- => 1142
+ => 1164
 > GitHubApiAdapter.star_count_for_tokenautocomplete
- => 1142
+ => 1164
 ```
 
 ### Other Notes / Frequently Asked Questions

@@ -6,7 +6,6 @@ require 'cacheable/version'
 Gem::Specification.new do |s|
   s.name        = 'cacheable'
   s.version     = Cacheable::VERSION
-  s.date        = '2018-07-31'
   s.summary     = 'Add caching to any Ruby method in a aspect orientated programming approach.'
   s.description = 'Add caching simply without modifying your existing code. '\
                   'Includes configurable options for simple cache invalidation. '\
@@ -16,5 +15,6 @@ Gem::Specification.new do |s|
   s.files       = Dir['lib/**/*', 'README.md', 'cache-adapters.md']
   s.homepage    = 'https://github.com/splitwise/cacheable'
   s.licenses    = 'MIT'
-  s.required_ruby_version = '>= 2.3.0'
+  s.required_ruby_version = '>= 2.5.0'
+  s.metadata = {'rubygems_mfa_required' => 'true'}
 end

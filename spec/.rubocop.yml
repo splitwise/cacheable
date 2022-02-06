@@ -1,14 +1,14 @@
 inherit_from: ../.rubocop.yml
 
+Layout/LineLength:
+  Max: 170
+
 # This cop does not like rspec dsl syntax https://github.com/bbatsov/rubocop/pull/4237#issuecomment-291408032
 Lint/AmbiguousBlockAssociation:
   Enabled: false
 
 Metrics/BlockLength:
   Enabled: false
-
-Metrics/LineLength:
-  Max: 170
 
 RSpec/AnyInstance:
   Enabled: false
@@ -32,3 +32,7 @@ RSpec/NestedGroups:
 RSpec/SubjectStub:
   Exclude:
     - 'cacheable/cacheable_spec.rb'
+
+Style/RedundantFetchBlock:
+  Exclude:
+    - 'cacheable/cache_adapters/memory_adapter_spec.rb' # Rubocop cannot tell Cache#fetch from Hash#fetch

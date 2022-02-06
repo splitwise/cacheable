@@ -1,14 +1,15 @@
 require: 'rubocop-rspec'
 
 AllCops:
-  TargetRubyVersion: 2.3
+  NewCops: enable
+  TargetRubyVersion: 2.5
 
+Layout/LineLength:
+  Max: 120
+  IgnoredPatterns: ['#.*']
 Layout/SpaceInsideHashLiteralBraces:
   EnforcedStyle: no_space
 
-Metrics/LineLength:
-  Max: 120
-  IgnoredPatterns: ['#.*']
 Metrics/MethodLength:
   Max: 25
 

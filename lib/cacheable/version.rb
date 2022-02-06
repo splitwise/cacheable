@@ -7,10 +7,8 @@ module Cacheable
     TINY = 4
     PRE = nil
 
-    STRING = [MAJOR, MINOR, TINY, PRE].compact.join('.').freeze
-
     def self.to_s
-      STRING
+      [MAJOR, MINOR, TINY, PRE].compact.join('.').freeze
     end
   end
 end

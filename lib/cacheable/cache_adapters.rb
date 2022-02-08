@@ -14,7 +14,7 @@ module Cacheable
       private
 
       def class_name_for(string)
-        string.split('_').map { |name_part| "#{name_part[0].upcase}#{name_part[1..-1].downcase}" }.join
+        string.split('_').map { |name_part| "#{name_part[0].upcase}#{name_part[1..].downcase}" }.join
       end
     end
   end

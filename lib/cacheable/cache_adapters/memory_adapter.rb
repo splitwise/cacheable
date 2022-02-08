@@ -20,7 +20,7 @@ module Cacheable
       def fetch(key, _options = {})
         return read(key) if exist?(key)
 
-        write(key, Proc.new.call)
+        write(key, yield)
       end
 
       def delete(key)

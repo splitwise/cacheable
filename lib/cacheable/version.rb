@@ -2,15 +2,13 @@
 
 module Cacheable
   module VERSION
-    MAJOR = 1
+    MAJOR = 2
     MINOR = 0
-    TINY = 4
+    TINY = 0
     PRE = nil
 
-    STRING = [MAJOR, MINOR, TINY, PRE].compact.join('.').freeze
-
     def self.to_s
-      STRING
+      [MAJOR, MINOR, TINY, PRE].compact.join('.').freeze
     end
   end
 end

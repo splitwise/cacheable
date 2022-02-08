@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'English'
-
 module Cacheable
   module MethodGenerator
     def cacheable(*original_method_names, **opts)
@@ -66,7 +64,7 @@ module Cacheable
 
     def create_method_names(original_method_name)
       method_name_without_punctuation = original_method_name.to_s.sub(/([?!=])$/, '')
-      punctuation = $LAST_PAREN_MATCH
+      punctuation = Regexp.last_match(-1)
 
       {
         with_cache_method_name: "#{method_name_without_punctuation}_with_cache#{punctuation}",

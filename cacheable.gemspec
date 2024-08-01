@@ -15,6 +15,6 @@ Gem::Specification.new do |s|
   s.files       = Dir['lib/**/*', 'README.md', 'cache-adapters.md']
   s.homepage    = 'https://github.com/splitwise/cacheable'
   s.licenses    = 'MIT'
-  s.required_ruby_version = '>= 2.6.0'
+  s.required_ruby_version = '>= 3.1.6'
   s.metadata = {'rubygems_mfa_required' => 'true'}
 end

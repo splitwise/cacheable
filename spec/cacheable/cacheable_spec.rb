@@ -89,22 +89,17 @@ RSpec.describe Cacheable do
     end
 
     it 'uses the class name to define an interceptor module' do
-      # This is done specifically this way to be compatible w/ RSpec best practices
-      # Once Cacheable is included in a class, it uses the name of the class to define the
-      # interceptor module. However, it is considered bad practice to create constants in RSpec
-      # so they're typically made with `stub_const`. We need to include Cacheable after the
-      # anonymous class has been created and assigned to the stubbed constant for this order to work.
       stub_const('RealClassName', Class.new)
-      class_name = RealClassName.include(described_class)
+      RealClassName.include(described_class)
 
-      expect(class_name.ancestors.map(&:to_s)).to include("Cacheable::#{class_name}Cacher")
+      expect(RealClassName.ancestors.map(&:to_s)).to include('RealClassNameCacher')
     end
 
     it 'uses the class address to define an interceptor module for anonymous classes' do
       custom_class = Class.new { include Cacheable }
       class_name = custom_class.to_s.tr('#:<>', '')
 
-      expect(custom_class.ancestors.map(&:to_s)).to include("Cacheable::#{class_name}Cacher")
+      expect(custom_class.ancestors.map(&:to_s)).to include("#{class_name}Cacher")
     end
 
     context 'when the method name has special characters' do
@@ -126,7 +121,7 @@ RSpec.describe Cacheable do
         stub_const('Outer::Inner', Class.new)
         Outer::Inner.include(described_class)
 
-        expect(Outer::Inner.ancestors.map(&:to_s)).to include('Cacheable::OuterInnerCacher')
+        expect(Outer::Inner.ancestors.map(&:to_s)).to include('OuterInnerCacher')
       end
     end
   end

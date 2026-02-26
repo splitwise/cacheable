@@ -22,7 +22,7 @@ module Cacheable
 
       unless_proc = opts[:unless].is_a?(Symbol) ? opts[:unless].to_proc : opts[:unless]
 
-      const_get(method_interceptor_module_name).class_eval do
+      @_cacheable_interceptor.class_eval do
         define_method(method_names[:key_format_method_name]) do |*args, **kwargs|
           key_format_proc.call(self, original_method_name, args, **kwargs)
         end

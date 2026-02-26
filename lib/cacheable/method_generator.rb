@@ -15,7 +15,7 @@ module Cacheable
       "#{class_name}Cacher"
     end
 
-    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def create_cacheable_methods(original_method_name, opts = {})
       method_names = create_method_names(original_method_name)
       key_format_proc = opts[:key_format] || default_key_format
@@ -28,7 +28,8 @@ module Cacheable
         end
 
         define_method(method_names[:clear_cache_method_name]) do |*args, **kwargs|
-          Cacheable.cache_adapter.delete(__send__(method_names[:key_format_method_name], *args, **kwargs))
+          adapter = (is_a?(Module) ? singleton_class : self.class).cache_adapter
+          adapter.delete(__send__(method_names[:key_format_method_name], *args, **kwargs))
         end
 
         define_method(method_names[:without_cache_method_name]) do |*args, **kwargs, &block|
@@ -36,7 +37,8 @@ module Cacheable
         end
 
         define_method(method_names[:with_cache_method_name]) do |*args, **kwargs, &block|
-          Cacheable.cache_adapter.fetch(__send__(method_names[:key_format_method_name], *args, **kwargs), opts[:cache_options]) do # rubocop:disable Lint/UselessDefaultValueArgument -- not Hash#fetch; second arg is cache options (e.g. expires_in) passed to the adapter
+          adapter = (is_a?(Module) ? singleton_class : self.class).cache_adapter
+          adapter.fetch(__send__(method_names[:key_format_method_name], *args, **kwargs), opts[:cache_options]) do # rubocop:disable Lint/UselessDefaultValueArgument -- not Hash#fetch; second arg is cache options (e.g. expires_in) passed to the adapter
             __send__(method_names[:without_cache_method_name], *args, **kwargs, &block)
           end
         end
@@ -50,7 +52,7 @@ module Cacheable
         end
       end
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
     def default_key_format
       warned = false

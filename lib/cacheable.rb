@@ -32,6 +32,7 @@ module Cacheable
   extend CacheAdapter
 
   def self.included(base)
+    base.extend(Cacheable::CacheAdapter)
     base.extend(Cacheable::MethodGenerator)
 
     interceptor_name = base.send(:method_interceptor_module_name)

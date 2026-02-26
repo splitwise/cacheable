@@ -254,6 +254,26 @@ If your cache backend supports options, you can pass them as the `cache_options:
 cacheable :with_options, cache_options: {expires_in: 3_600}
 ```
 
+### Per-Class Cache Adapter
+
+By default, all classes use the global adapter set via `Cacheable.cache_adapter`. If you need a specific class to use a different cache backend, you can set one directly on the class:
+
+```ruby
+class FrequentlyAccessedModel
+  include Cacheable
+
+  self.cache_adapter = MyFasterCache.new
+
+  cacheable :expensive_lookup
+
+  def expensive_lookup
+    # ...
+  end
+end
+```
+
+The class-level adapter takes precedence over the global adapter. Classes without their own adapter fall back to `Cacheable.cache_adapter` as usual.
+
 ### Flexible Options
 
 You can use the same options with multiple cache methods or limit them only to specific methods:

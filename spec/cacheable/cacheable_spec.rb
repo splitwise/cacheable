@@ -558,6 +558,37 @@ RSpec.describe Cacheable do
     end
   end
 
+  describe 'per-class cache adapter' do
+    it 'falls back to the global adapter by default' do
+      expect(cacheable_class.cache_adapter).to eq(described_class.cache_adapter)
+    end
+
+    it 'allows setting a class-specific adapter' do
+      class_adapter = Cacheable::CacheAdapters::MemoryAdapter.new
+      cacheable_class.cache_adapter = class_adapter
+
+      expect(cacheable_class.cache_adapter).to eq(class_adapter)
+      expect(cacheable_class.cache_adapter).not_to eq(described_class.cache_adapter)
+    end
+
+    it 'uses the class adapter for caching when set' do
+      class_adapter = Cacheable::CacheAdapters::MemoryAdapter.new
+      cacheable_class.cache_adapter = class_adapter
+
+      cacheable_object.send(cacheable_method)
+      expect(class_adapter.exist?([cacheable_method])).to be true
+      expect(described_class.cache_adapter.exist?([cacheable_method])).to be false
+    end
+
+    it 'does not affect other classes' do
+      other_class = Class.new.tap { |klass| klass.class_exec(&class_definition) }
+      class_adapter = Cacheable::CacheAdapters::MemoryAdapter.new
+      cacheable_class.cache_adapter = class_adapter
+
+      expect(other_class.cache_adapter).to eq(described_class.cache_adapter)
+    end
+  end
+
   it 'passes `cache_options` to the cache client' do
     cache_options = {expires_in: 3_600}
     cache_method_with_cache_options = :cache_method_with_cache_options

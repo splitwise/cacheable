@@ -7,11 +7,11 @@ module Cacheable
 
     def self.extended(base)
       base.instance_variable_set(:@_cache_adapter, nil)
-      base.cache_adapter = DEFAULT_ADAPTER
+      base.cache_adapter = DEFAULT_ADAPTER if base == Cacheable
     end
 
     def cache_adapter
-      @_cache_adapter
+      @_cache_adapter || (self == Cacheable ? nil : Cacheable.cache_adapter)
     end
 
     def cache_adapter=(name_or_adapter)

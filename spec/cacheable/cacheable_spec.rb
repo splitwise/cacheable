@@ -366,8 +366,10 @@ RSpec.describe Cacheable do
           cacheable(*local_variable_so_class_eval_works)
         end
 
-        expect(described_class.cache_adapter).to receive(:write).twice.and_call_original
         2.times { cache_methods.each { |method| cacheable_object.send(method) } }
+        cache_methods.each do |method|
+          expect(described_class.cache_adapter.exist?([method])).to be true
+        end
       end
 
       it 'uses the same options for cacheable methods declared on a single line' do
@@ -377,8 +379,10 @@ RSpec.describe Cacheable do
           cacheable(*local_variable_so_class_eval_works, unless: proc { true })
         end
 
-        expect(described_class.cache_adapter).not_to receive(:write)
         2.times { cache_methods.each { |method| cacheable_object.send(method) } }
+        cache_methods.each do |method|
+          expect(described_class.cache_adapter.exist?([method])).to be false
+        end
       end
 
       it 'can take strings' do
@@ -388,8 +392,10 @@ RSpec.describe Cacheable do
           cacheable(*cache_methods_as_strings)
         end
 
-        expect(described_class.cache_adapter).to receive(:write).twice.and_call_original
         2.times { cache_methods.each { |method| cacheable_object.send(method) } }
+        cache_methods_as_strings.each do |method|
+          expect(described_class.cache_adapter.exist?([method])).to be true
+        end
       end
 
       it 'can take strings before the method is defined' do

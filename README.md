@@ -155,12 +155,13 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, key_format: ->(target, method_name, method_args) do
-    [target.class, method_name, method_args.first, Time.now.strftime('%Y-%m-%d')].join('/')
+  cacheable :star_count, key_format: ->(target, method_name, method_args, **kwargs) do
+    date = kwargs.fetch(:date, Time.now.strftime('%Y-%m-%d'))
+    [target.class, method_name, method_args.first, date].join('/')
   end
 
-  def star_count(repo)
-    puts "Fetching data from GitHub for #{repo}"
+  def star_count(repo, date: Time.now.strftime('%Y-%m-%d'))
+    puts "Fetching data from GitHub for #{repo} (as of #{date})"
     url = "https://api.github.com/repos/splitwise/#{repo}"
 
     JSON.parse(Net::HTTP.get(URI.parse(url)))['stargazers_count']
@@ -170,33 +171,34 @@ end
 
 * `target` is the object the method is being called on (`#<GitHubApiAdapter:0x0…0>`)
 * `method_name` is the name of the method being cached (`:star_count`)
-* `method_args` is an array of arguments being passed to the method (`[params]`)
+* `method_args` is an array of positional arguments being passed to the method (`[params]`)
+* `**kwargs` are the keyword arguments being passed to the method
 
 Including the method argument(s) allows you to cache different calls to the same method. Without the arguments in the cache key, a call to `star_count('cacheable')` would populate the cache and `star_count('tokenautocomplete')` would return the number of stars for Cacheable instead of what you want.
 
-In addition, we're including the current date in the cache key so calling this method tomorrow will return an updated value.
+**Note:** The `key_format` proc only receives keyword arguments that the caller explicitly passes — method defaults are not included. That's why the proc uses `kwargs.fetch(:date, Time.now.strftime('%Y-%m-%d'))` to compute its own default when `date:` is omitted. This ensures the cache key always varies by date.
 
 ```irb
 > a = GitHubApiAdapter.new
 > a.star_count('cacheable')
-Fetching data from GitHub for cacheable
- => 19
+Fetching data from GitHub for cacheable (as of 2026-02-26)
+ => 58
 > a.star_count('cacheable')
- => 19
+ => 58
 > a.star_count('tokenautocomplete')
-Fetching data from GitHub for tokenautocomplete
- => 1164
+Fetching data from GitHub for tokenautocomplete (as of 2026-02-26)
+ => 1309
 > a.star_count('tokenautocomplete')
- => 1164
+ => 1309
 
  # In this example the follow cache keys are generated:
- # GitHubApiAdapter/star_count/cacheable/2018-09-21
- # GitHubApiAdapter/star_count/tokenautocomplete/2018-09-21
+ # GitHubApiAdapter/star_count/cacheable/2026-02-26
+ # GitHubApiAdapter/star_count/tokenautocomplete/2026-02-26
 ```
 
 ### Conditional Caching
 
-You can control if a method should be cached by supplying a proc to the `unless:` option which will get the same arguments as `key_format:`. This logic can be defined in a method on the class and the name of the method as a symbol can be passed as well. **Note**: When using a symbol, the first argument, `target`, will not be passed but will be available as `self`.
+You can control if a method should be cached by supplying a proc to the `unless:` option which will get the same arguments as `key_format:` (`target, method_name, method_args, **kwargs`). This logic can be defined in a method on the class and the name of the method as a symbol can be passed as well. **Note**: When using a symbol, the first argument, `target`, will not be passed but will be available as `self`.
 
 ```ruby
 # From examples/conditional_example.rb
@@ -208,18 +210,19 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, unless: :growing_fast?, key_format: ->(target, method_name, method_args) do
-    [target.class, method_name, method_args.first].join('/')
+  cacheable :star_count, unless: :growing_fast?, key_format: ->(target, method_name, method_args, **kwargs) do
+    date = kwargs.fetch(:date, Time.now.strftime('%Y-%m-%d'))
+    [target.class, method_name, method_args.first, date].join('/')
   end
 
-  def star_count(repo)
-    puts "Fetching data from GitHub for #{repo}"
+  def star_count(repo, date: Time.now.strftime('%Y-%m-%d'))
+    puts "Fetching data from GitHub for #{repo} (as of #{date})"
     url = "https://api.github.com/repos/splitwise/#{repo}"
 
     JSON.parse(Net::HTTP.get(URI.parse(url)))['stargazers_count']
   end
 
-  def growing_fast?(_method_name, method_args)
+  def growing_fast?(_method_name, method_args, **)
     method_args.first == 'cacheable'
   end
 end
@@ -230,17 +233,17 @@ Cacheable is new so we don't want to cache the number of stars it has as we expe
 ```irb
 > a = GitHubApiAdapter.new
 > a.star_count('tokenautocomplete')
-Fetching data from GitHub for tokenautocomplete
- => 1164
+Fetching data from GitHub for tokenautocomplete (as of 2026-02-26)
+ => 1309
 a.star_count('tokenautocomplete')
- => 1164
+ => 1309
 
 > a.star_count('cacheable')
-Fetching data from GitHub for cacheable
- => 19
+Fetching data from GitHub for cacheable (as of 2026-02-26)
+ => 58
 > a.star_count('cacheable')
-Fetching data from GitHub for cacheable
- => 19
+Fetching data from GitHub for cacheable (as of 2026-02-26)
+ => 58
 ```
 
 ### Cache Options

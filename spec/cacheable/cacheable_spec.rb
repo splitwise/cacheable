@@ -131,6 +131,73 @@ RSpec.describe Cacheable do
     end
   end
 
+  describe 'keyword arguments' do
+    it 'forwards keyword arguments to the original method' do
+      cacheable_class.class_eval do
+        define_method(:method_with_kwargs) do |name:, greeting: 'Hello'|
+          "#{greeting}, #{name}"
+        end
+
+        cacheable :method_with_kwargs, key_format: proc { |_, _, args, **kwargs| [args, kwargs] }
+      end
+
+      expect(cacheable_object.method_with_kwargs(name: 'World')).to eq('Hello, World')
+      expect(cacheable_object.method_with_kwargs(name: 'World', greeting: 'Hi')).to eq('Hi, World')
+    end
+
+    it 'forwards keyword arguments when skipping cache' do
+      cacheable_class.class_eval do
+        define_method(:kwargs_no_cache) do |val:|
+          val
+        end
+
+        cacheable :kwargs_no_cache, key_format: proc { |_, _, args, **kwargs| [args, kwargs] }
+      end
+
+      expect(cacheable_object.kwargs_no_cache_without_cache(val: 42)).to eq(42)
+    end
+
+    it 'forwards mixed positional and keyword arguments' do
+      cacheable_class.class_eval do
+        define_method(:mixed_args) do |pos, key:|
+          "#{pos}-#{key}"
+        end
+
+        cacheable :mixed_args, key_format: proc { |_, _, args, **kwargs| [args, kwargs] }
+      end
+
+      expect(cacheable_object.mixed_args('a', key: 'b')).to eq('a-b')
+    end
+  end
+
+  describe 'block forwarding' do
+    it 'forwards blocks to the original method on cache miss' do
+      cacheable_class.class_eval do
+        define_method(:method_with_block) do |&block|
+          block.call('from cache miss')
+        end
+
+        cacheable :method_with_block
+      end
+
+      result = cacheable_object.method_with_block { |msg| "got: #{msg}" }
+      expect(result).to eq('got: from cache miss')
+    end
+
+    it 'forwards blocks when skipping cache' do
+      cacheable_class.class_eval do
+        define_method(:block_no_cache) do |&block|
+          block.call('direct')
+        end
+
+        cacheable :block_no_cache
+      end
+
+      result = cacheable_object.block_no_cache_without_cache { |msg| "got: #{msg}" }
+      expect(result).to eq('got: direct')
+    end
+  end
+
   describe 'interceptor module' do
     it 'has the public generated methods' do
       expect(cacheable_class.ancestors.first.instance_methods(false)).to include(cacheable_method, :"#{cacheable_method}_without_cache", :"#{cacheable_method}_with_cache", :"#{cacheable_method}_key_format")
@@ -433,6 +500,20 @@ RSpec.describe Cacheable do
       end
       expect(cacheable_object).to receive(inner_method).twice.and_call_original
       2.times { cacheable_object.send(cache_depends_on_args, the_method_arg) }
+    end
+
+    it 'passes kwargs to the `unless` proc' do
+      cache_depends_on_kwargs = :cache_depends_on_kwargs
+      inner_method = cacheable_method_inner
+      cacheable_class.class_eval do
+        define_method(cache_depends_on_kwargs) do |force: false| # rubocop:disable Lint/UnusedBlockArgument
+          send inner_method
+        end
+
+        cacheable cache_depends_on_kwargs, unless: proc { |_, _, _, force: false| force }
+      end
+      expect(cacheable_object).to receive(inner_method).twice.and_call_original
+      2.times { cacheable_object.send(cache_depends_on_kwargs, force: true) }
     end
   end
 

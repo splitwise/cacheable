@@ -135,7 +135,7 @@ Fetching data from GitHub
 
 #### Default
 
-By default, Cacheable will construct a key in the format `[cache_key || class_name, method_name]` without using method arguments.
+By default, Cacheable will construct a key in the format `[cache_key || class_name, method_name]` without using method arguments. If a cached method is called with arguments while using the default key format, Cacheable will emit a warning to stderr since different arguments will return the same cached value. To silence the warning, provide a `:key_format` proc that includes the arguments in the cache key.
 
 If the object responds to `cache_key` its return value will be the first element in the array. `ActiveRecord` provides [`cache_key`](https://api.rubyonrails.org/classes/ActiveRecord/Integration.html#method-i-cache_key) but it can be added to any Ruby object or overwritten. If the object does not respond to it, the name of the class will be used instead. The second element will be the name of the method as a symbol.
 

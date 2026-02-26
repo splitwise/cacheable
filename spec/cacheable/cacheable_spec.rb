@@ -43,7 +43,7 @@ RSpec.describe Cacheable do
       arg = 'an argument'
       expect(cacheable_object).to receive(cacheable_method_inner).with(arg)
 
-      cacheable_object.send(cacheable_method, arg)
+      expect { cacheable_object.send(cacheable_method, arg) }.to output.to_stderr
     end
 
     it 'creates a method that can skip the cache' do
@@ -223,9 +223,28 @@ RSpec.describe Cacheable do
           .to change { described_class.cache_adapter.exist?(key) }.from(false).to(true)
       end
 
-      it 'does not use the arguments to the method to determine the cache key' do
-        args = [1]
-        expect(cacheable_object.cacheable_method_key_format(*args)).to eq([cacheable_method])
+      it 'does not use positional arguments in the cache key and warns' do
+        cache_key = nil
+        expect { cache_key = cacheable_object.cacheable_method_key_format(1) }
+          .to output(/default key format.*arguments are NOT included/i).to_stderr
+        expect(cache_key).to eq([cacheable_method])
+      end
+
+      it 'does not use keyword arguments in the cache key and warns' do
+        cache_key = nil
+        expect { cache_key = cacheable_object.cacheable_method_key_format(foo: 1) }
+          .to output(/default key format.*arguments are NOT included/i).to_stderr
+        expect(cache_key).to eq([cacheable_method])
+      end
+
+      it 'only warns once per method' do
+        expect { cacheable_object.cacheable_method_key_format(1) }
+          .to output(/default key format/i).to_stderr
+        expect { cacheable_object.cacheable_method_key_format(2) }.not_to output.to_stderr
+      end
+
+      it 'does not warn when called without arguments' do
+        expect { cacheable_object.cacheable_method_key_format }.not_to output.to_stderr
       end
 
       it 'uses different keys for different cached values' do
@@ -244,8 +263,10 @@ RSpec.describe Cacheable do
         expect(cacheable_object).to receive(inner_method).with(arg1).once.and_call_original
         expect(cacheable_object).to receive(inner_method).with(arg2).once.and_call_original
 
-        2.times { expect(cacheable_object.send(cacheable_method, arg1)).to include(arg1) }
-        2.times { expect(cacheable_object.send(another_cacheable_method, arg2)).to include(arg2) }
+        expect do
+          2.times { expect(cacheable_object.send(cacheable_method, arg1)).to include(arg1) }
+          2.times { expect(cacheable_object.send(another_cacheable_method, arg2)).to include(arg2) }
+        end.to output.to_stderr
       end
 
       it 'uses the value of `cache_key` if the method is defined instead of the class' do

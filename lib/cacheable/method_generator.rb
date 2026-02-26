@@ -53,8 +53,16 @@ module Cacheable
     # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
     def default_key_format
-      proc do |target, method_name, _method_args, **_kwargs|
-        # By default, we omit the _method_args from the cache key because there is no acceptable default behavior
+      warned = false
+
+      proc do |target, method_name, method_args, **kwargs|
+        if !warned && (!method_args.empty? || !kwargs.empty?)
+          warn "Cacheable WARNING: '#{method_name}' is using the default key format but was called with " \
+               'arguments. Arguments are NOT included in the cache key, so different arguments will return ' \
+               'the same cached value. Provide a :key_format proc to include arguments in the cache key.'
+          warned = true
+        end
+
         class_name = (target.is_a?(Module) ? target.name : target.class.name)
         cache_key = target.respond_to?(:cache_key) ? target.cache_key : class_name
         [cache_key, method_name].compact

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    cacheable (2.0.0)
+    cacheable (2.1.0)
 
 GEM
   remote: https://rubygems.org/

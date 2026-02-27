@@ -20,12 +20,12 @@ RSpec.describe Cacheable::CacheAdapters::MemoryAdapter do
 
   describe '#delete' do
     it 'returns false if the value was not found' do
-      expect(cache.delete(key)).to eq(false)
+      expect(cache.delete(key)).to be(false)
     end
 
     it 'returns true if the value was found' do
       cache.fetch(key) { true }
-      expect(cache.delete(key)).to eq(true)
+      expect(cache.delete(key)).to be(true)
     end
 
     it 'removes the value from the cache' do

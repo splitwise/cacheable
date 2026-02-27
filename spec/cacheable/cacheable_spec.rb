@@ -8,8 +8,11 @@ RSpec.describe Cacheable do
   let(:class_definition) do
     cacheable_method_name = cacheable_method
     cacheable_method_inner_name = cacheable_method_inner
+    # Capture described_class here because class_exec changes self to
+    # the anonymous class, where the RSpec helper is not available.
+    mod = described_class
     proc do
-      include Cacheable # rubocop:disable RSpec/DescribedClass
+      include mod
 
       define_method(cacheable_method_name) do |arg = nil|
         send cacheable_method_inner_name, arg
@@ -65,8 +68,8 @@ RSpec.describe Cacheable do
       cacheable_object.send(cacheable_method)
 
       expect { cacheable_object.send("clear_#{cacheable_method}_cache") }
-        .to change { described_class.cache_adapter.read(cacheable_object.cacheable_method_key_format) }.to(nil)
-        .and not_change { described_class.cache_adapter.read(any_other_cached_value) } # rubocop:disable Layout/MultilineMethodCallIndentation
+        .to change { described_class.cache_adapter.read(cacheable_object.cacheable_method_key_format) }.to(nil) # rubocop:disable Lint/AmbiguousBlockAssociation
+        .and not_change { described_class.cache_adapter.read(any_other_cached_value) }
     end
 
     it 'allows access to `super` via a module interceptor' do
@@ -230,7 +233,7 @@ RSpec.describe Cacheable do
 
         attr_accessor :secret
 
-        cacheable custom_key_object_access_cacheable_method, key_format: proc { |c| c.secret }
+        cacheable custom_key_object_access_cacheable_method, key_format: proc { |obj, _method_name, _args| obj.secret }
       end
       cacheable_object.secret = 'some_state_on_the_object'
 
@@ -376,7 +379,7 @@ RSpec.describe Cacheable do
         cacheable symbol_unless_cache_method, unless: :cache_control_method
 
         def cache_control_method(*_args)
-          true
+          'a truthy value skips caching with :unless'
         end
       end
 
@@ -455,7 +458,7 @@ RSpec.describe Cacheable do
         calculate_hard_value
       end
 
-      cacheable :cache_method_with_cache_options, cache_options: cache_options
+      cacheable :cache_method_with_cache_options, cache_options:
     end
 
     expect(described_class.cache_adapter).to receive(:fetch).with(anything, hash_including(cache_options))

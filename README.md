@@ -82,9 +82,9 @@ end
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count
- => 19
+ => 58
 
 # Notice that "Fetching data from GitHub" was not output the 2nd time the method was invoked.
 # The network call and result parsing would also not be performed again.
@@ -102,12 +102,12 @@ The cache can intentionally be skipped by appending `_without_cache` to the meth
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count_without_cache
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count
- => 19
+ => 58
 ```
 
 #### Remove the Value via `clear_#{method}_cache`
@@ -118,15 +118,15 @@ The cached value can be cleared at any time by calling `clear_#{your_method_name
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count
- => 19
+ => 58
 
 > a.clear_star_count_cache
  => true
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 ```
 
 ## Additional Configuration
@@ -325,15 +325,15 @@ end
 ```irb
 > GitHubApiAdapter.star_count_for_cacheable
 Fetching data from GitHub for cacheable
- => 19
+ => 58
 > GitHubApiAdapter.star_count_for_cacheable
- => 19
+ => 58
 
 > GitHubApiAdapter.star_count_for_tokenautocomplete
 Fetching data from GitHub for tokenautocomplete
- => 1164
+ => 1309
 > GitHubApiAdapter.star_count_for_tokenautocomplete
- => 1164
+ => 1309
 ```
 
 ### Other Notes / Frequently Asked Questions

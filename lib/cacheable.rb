@@ -31,6 +31,9 @@ require 'cacheable/version'
 module Cacheable
   extend CacheAdapter
 
+  # Sentinel value to distinguish "not yet memoized" from a memoized nil/false.
+  MEMOIZE_NOT_SET = Object.new.freeze
+
   def self.included(base)
     base.extend(Cacheable::CacheAdapter)
     base.extend(Cacheable::MethodGenerator)

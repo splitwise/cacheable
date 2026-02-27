@@ -11,7 +11,7 @@ module Cacheable
     private
 
     def method_interceptor_module_name
-      class_name = name&.gsub(/:/, '') || to_s.gsub(/[^a-zA-Z_0-9]/, '')
+      class_name = name&.gsub(':', '') || to_s.gsub(/[^a-zA-Z_0-9]/, '')
       "#{class_name}Cacher"
     end
 
@@ -35,7 +35,7 @@ module Cacheable
         end
 
         define_method(method_names[:with_cache_method_name]) do |*args|
-          Cacheable.cache_adapter.fetch(__send__(method_names[:key_format_method_name], *args), opts[:cache_options]) do
+          Cacheable.cache_adapter.fetch(__send__(method_names[:key_format_method_name], *args), opts[:cache_options]) do # rubocop:disable Lint/UselessDefaultValueArgument -- not Hash#fetch; second arg is cache options (e.g. expires_in) passed to the adapter
             __send__(method_names[:without_cache_method_name], *args)
           end
         end

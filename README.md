@@ -1,6 +1,10 @@
 # Cacheable
 
+[![CI](https://github.com/splitwise/cacheable/actions/workflows/ci.yml/badge.svg)](https://github.com/splitwise/cacheable/actions/workflows/ci.yml)
+
 By [Splitwise](https://www.splitwise.com)
+
+Requires Ruby >= 3.3
 
 Cacheable is a gem which adds method caching in Ruby following an [aspect-oriented programming (AOP)](https://en.wikipedia.org/wiki/Aspect-oriented_programming) paradigm. Its core goals are:
 
@@ -131,7 +135,7 @@ Fetching data from GitHub
 
 #### Default
 
-By default, Cacheable will construct key a key in the format `[cache_key || class_name, method_name]` without using method arguments.
+By default, Cacheable will construct a key in the format `[cache_key || class_name, method_name]` without using method arguments.
 
 If the object responds to `cache_key` its return value will be the first element in the array. `ActiveRecord` provides [`cache_key`](https://api.rubyonrails.org/classes/ActiveRecord/Integration.html#method-i-cache_key) but it can be added to any Ruby object or overwritten. If the object does not respond to it, the name of the class will be used instead. The second element will be the name of the method as a symbol.
 

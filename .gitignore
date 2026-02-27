@@ -5,6 +5,9 @@
 # Used by dotenv library to load environment variables.
 .env
 .rvmrc
+.ruby-version
+.tool-versions
+.mise.toml
 
 # Because macs
 .DS_Store

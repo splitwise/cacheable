@@ -23,7 +23,7 @@ module Cacheable
         write(key, yield)
       end
 
-      def delete(key)
+      def delete(key) # rubocop:disable Naming/PredicateMethod -- mimics the ActiveSupport::Cache::Store#delete interface and isn't a predicate
         return false unless exist?(key)
 
         cache.delete key

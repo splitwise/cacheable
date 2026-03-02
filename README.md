@@ -1,6 +1,7 @@
 # Cacheable
 
 [![CI](https://github.com/splitwise/cacheable/actions/workflows/ci.yml/badge.svg)](https://github.com/splitwise/cacheable/actions/workflows/ci.yml)
+[![Gem Version](https://badge.fury.io/rb/cacheable.svg)](https://badge.fury.io/rb/cacheable)
 
 By [Splitwise](https://www.splitwise.com)
 
@@ -14,7 +15,7 @@ Cacheable is a gem which adds method caching in Ruby following an [aspect-orient
 
 While using Ruby on Rails is not a requirement, Cacheable was built inside a mature Rails app and later extracted. The current release is designed for drop-in support in Rails, and includes an adapter for an in-memory cache backed by a simple hash. This may be enough for your needs, but it's more likely that additional cache adapters will need to be written for other projects.
 
-See more about [Cache Adapters](cache-adapters.md).
+See more about [Cache Adapters](cache-adapters.md). For a deep dive into how the code is structured, see [Architecture](ARCHITECTURE.md).
 
 ## Getting Started
 

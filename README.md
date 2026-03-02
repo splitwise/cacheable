@@ -82,9 +82,9 @@ end
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count
- => 19
+ => 58
 
 # Notice that "Fetching data from GitHub" was not output the 2nd time the method was invoked.
 # The network call and result parsing would also not be performed again.
@@ -102,12 +102,12 @@ The cache can intentionally be skipped by appending `_without_cache` to the meth
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count_without_cache
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count
- => 19
+ => 58
 ```
 
 #### Remove the Value via `clear_#{method}_cache`
@@ -118,15 +118,15 @@ The cached value can be cleared at any time by calling `clear_#{your_method_name
 > a = GitHubApiAdapter.new
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 > a.star_count
- => 19
+ => 58
 
 > a.clear_star_count_cache
  => true
 > a.star_count
 Fetching data from GitHub
- => 19
+ => 58
 ```
 
 ## Additional Configuration
@@ -135,7 +135,7 @@ Fetching data from GitHub
 
 #### Default
 
-By default, Cacheable will construct a key in the format `[cache_key || class_name, method_name]` without using method arguments.
+By default, Cacheable will construct a key in the format `[cache_key || class_name, method_name]` without using method arguments. If a cached method is called with arguments while using the default key format, Cacheable will emit a warning to stderr since different arguments will return the same cached value. To silence the warning, provide a `:key_format` proc that includes the arguments in the cache key.
 
 If the object responds to `cache_key` its return value will be the first element in the array. `ActiveRecord` provides [`cache_key`](https://api.rubyonrails.org/classes/ActiveRecord/Integration.html#method-i-cache_key) but it can be added to any Ruby object or overwritten. If the object does not respond to it, the name of the class will be used instead. The second element will be the name of the method as a symbol.
 
@@ -155,12 +155,13 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, key_format: ->(target, method_name, method_args) do
-    [target.class, method_name, method_args.first, Time.now.strftime('%Y-%m-%d')].join('/')
+  cacheable :star_count, key_format: ->(target, method_name, method_args, **kwargs) do
+    date = kwargs.fetch(:date, Time.now.strftime('%Y-%m-%d'))
+    [target.class, method_name, method_args.first, date].join('/')
   end
 
-  def star_count(repo)
-    puts "Fetching data from GitHub for #{repo}"
+  def star_count(repo, date: Time.now.strftime('%Y-%m-%d'))
+    puts "Fetching data from GitHub for #{repo} (as of #{date})"
     url = "https://api.github.com/repos/splitwise/#{repo}"
 
     JSON.parse(Net::HTTP.get(URI.parse(url)))['stargazers_count']
@@ -170,33 +171,34 @@ end
 
 * `target` is the object the method is being called on (`#<GitHubApiAdapter:0x0…0>`)
 * `method_name` is the name of the method being cached (`:star_count`)
-* `method_args` is an array of arguments being passed to the method (`[params]`)
+* `method_args` is an array of positional arguments being passed to the method (`[params]`)
+* `**kwargs` are the keyword arguments being passed to the method
 
 Including the method argument(s) allows you to cache different calls to the same method. Without the arguments in the cache key, a call to `star_count('cacheable')` would populate the cache and `star_count('tokenautocomplete')` would return the number of stars for Cacheable instead of what you want.
 
-In addition, we're including the current date in the cache key so calling this method tomorrow will return an updated value.
+**Note:** The `key_format` proc only receives keyword arguments that the caller explicitly passes — method defaults are not included. That's why the proc uses `kwargs.fetch(:date, Time.now.strftime('%Y-%m-%d'))` to compute its own default when `date:` is omitted. This ensures the cache key always varies by date.
 
 ```irb
 > a = GitHubApiAdapter.new
 > a.star_count('cacheable')
-Fetching data from GitHub for cacheable
- => 19
+Fetching data from GitHub for cacheable (as of 2026-02-26)
+ => 58
 > a.star_count('cacheable')
- => 19
+ => 58
 > a.star_count('tokenautocomplete')
-Fetching data from GitHub for tokenautocomplete
- => 1164
+Fetching data from GitHub for tokenautocomplete (as of 2026-02-26)
+ => 1309
 > a.star_count('tokenautocomplete')
- => 1164
+ => 1309
 
  # In this example the follow cache keys are generated:
- # GitHubApiAdapter/star_count/cacheable/2018-09-21
- # GitHubApiAdapter/star_count/tokenautocomplete/2018-09-21
+ # GitHubApiAdapter/star_count/cacheable/2026-02-26
+ # GitHubApiAdapter/star_count/tokenautocomplete/2026-02-26
 ```
 
 ### Conditional Caching
 
-You can control if a method should be cached by supplying a proc to the `unless:` option which will get the same arguments as `key_format:`. This logic can be defined in a method on the class and the name of the method as a symbol can be passed as well. **Note**: When using a symbol, the first argument, `target`, will not be passed but will be available as `self`.
+You can control if a method should be cached by supplying a proc to the `unless:` option which will get the same arguments as `key_format:` (`target, method_name, method_args, **kwargs`). This logic can be defined in a method on the class and the name of the method as a symbol can be passed as well. **Note**: When using a symbol, the first argument, `target`, will not be passed but will be available as `self`.
 
 ```ruby
 # From examples/conditional_example.rb
@@ -208,18 +210,19 @@ require 'net/http'
 class GitHubApiAdapter
   include Cacheable
 
-  cacheable :star_count, unless: :growing_fast?, key_format: ->(target, method_name, method_args) do
-    [target.class, method_name, method_args.first].join('/')
+  cacheable :star_count, unless: :growing_fast?, key_format: ->(target, method_name, method_args, **kwargs) do
+    date = kwargs.fetch(:date, Time.now.strftime('%Y-%m-%d'))
+    [target.class, method_name, method_args.first, date].join('/')
   end
 
-  def star_count(repo)
-    puts "Fetching data from GitHub for #{repo}"
+  def star_count(repo, date: Time.now.strftime('%Y-%m-%d'))
+    puts "Fetching data from GitHub for #{repo} (as of #{date})"
     url = "https://api.github.com/repos/splitwise/#{repo}"
 
     JSON.parse(Net::HTTP.get(URI.parse(url)))['stargazers_count']
   end
 
-  def growing_fast?(_method_name, method_args)
+  def growing_fast?(_method_name, method_args, **)
     method_args.first == 'cacheable'
   end
 end
@@ -230,17 +233,17 @@ Cacheable is new so we don't want to cache the number of stars it has as we expe
 ```irb
 > a = GitHubApiAdapter.new
 > a.star_count('tokenautocomplete')
-Fetching data from GitHub for tokenautocomplete
- => 1164
+Fetching data from GitHub for tokenautocomplete (as of 2026-02-26)
+ => 1309
 a.star_count('tokenautocomplete')
- => 1164
+ => 1309
 
 > a.star_count('cacheable')
-Fetching data from GitHub for cacheable
- => 19
+Fetching data from GitHub for cacheable (as of 2026-02-26)
+ => 58
 > a.star_count('cacheable')
-Fetching data from GitHub for cacheable
- => 19
+Fetching data from GitHub for cacheable (as of 2026-02-26)
+ => 58
 ```
 
 ### Cache Options
@@ -250,6 +253,26 @@ If your cache backend supports options, you can pass them as the `cache_options:
 ```ruby
 cacheable :with_options, cache_options: {expires_in: 3_600}
 ```
+
+### Per-Class Cache Adapter
+
+By default, all classes use the global adapter set via `Cacheable.cache_adapter`. If you need a specific class to use a different cache backend, you can set one directly on the class:
+
+```ruby
+class FrequentlyAccessedModel
+  include Cacheable
+
+  self.cache_adapter = MyFasterCache.new
+
+  cacheable :expensive_lookup
+
+  def expensive_lookup
+    # ...
+  end
+end
+```
+
+The class-level adapter takes precedence over the global adapter. Classes without their own adapter fall back to `Cacheable.cache_adapter` as usual.
 
 ### Flexible Options
 
@@ -302,15 +325,15 @@ end
 ```irb
 > GitHubApiAdapter.star_count_for_cacheable
 Fetching data from GitHub for cacheable
- => 19
+ => 58
 > GitHubApiAdapter.star_count_for_cacheable
- => 19
+ => 58
 
 > GitHubApiAdapter.star_count_for_tokenautocomplete
 Fetching data from GitHub for tokenautocomplete
- => 1164
+ => 1309
 > GitHubApiAdapter.star_count_for_tokenautocomplete
- => 1164
+ => 1309
 ```
 
 ### Other Notes / Frequently Asked Questions

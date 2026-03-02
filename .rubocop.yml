@@ -3,6 +3,7 @@ plugins:
 
 AllCops:
   NewCops: enable
+  SuggestExtensions: false # rubocop-rake is the only suggestion and our Rakefile is trivial boilerplate
   TargetRubyVersion: 3.3
 
 Layout/LineLength:

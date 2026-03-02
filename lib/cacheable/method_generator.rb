@@ -15,47 +15,56 @@ module Cacheable
       "#{class_name}Cacher"
     end
 
-    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def create_cacheable_methods(original_method_name, opts = {})
       method_names = create_method_names(original_method_name)
       key_format_proc = opts[:key_format] || default_key_format
 
-      const_get(method_interceptor_module_name).class_eval do
-        define_method(method_names[:key_format_method_name]) do |*args|
-          key_format_proc.call(self, original_method_name, args)
+      unless_proc = opts[:unless].is_a?(Symbol) ? opts[:unless].to_proc : opts[:unless]
+
+      @_cacheable_interceptor.class_eval do
+        define_method(method_names[:key_format_method_name]) do |*args, **kwargs|
+          key_format_proc.call(self, original_method_name, args, **kwargs)
         end
 
-        define_method(method_names[:clear_cache_method_name]) do |*args|
-          Cacheable.cache_adapter.delete(__send__(method_names[:key_format_method_name], *args))
+        define_method(method_names[:clear_cache_method_name]) do |*args, **kwargs|
+          adapter = (is_a?(Module) ? singleton_class : self.class).cache_adapter
+          adapter.delete(__send__(method_names[:key_format_method_name], *args, **kwargs))
         end
 
-        define_method(method_names[:without_cache_method_name]) do |*args|
-          original_method = method(original_method_name).super_method
-          original_method.call(*args)
+        define_method(method_names[:without_cache_method_name]) do |*args, **kwargs, &block|
+          method(original_method_name).super_method.call(*args, **kwargs, &block)
         end
 
-        define_method(method_names[:with_cache_method_name]) do |*args|
-          Cacheable.cache_adapter.fetch(__send__(method_names[:key_format_method_name], *args), opts[:cache_options]) do # rubocop:disable Lint/UselessDefaultValueArgument -- not Hash#fetch; second arg is cache options (e.g. expires_in) passed to the adapter
-            __send__(method_names[:without_cache_method_name], *args)
+        define_method(method_names[:with_cache_method_name]) do |*args, **kwargs, &block|
+          adapter = (is_a?(Module) ? singleton_class : self.class).cache_adapter
+          adapter.fetch(__send__(method_names[:key_format_method_name], *args, **kwargs), opts[:cache_options]) do # rubocop:disable Lint/UselessDefaultValueArgument -- not Hash#fetch; second arg is cache options (e.g. expires_in) passed to the adapter
+            __send__(method_names[:without_cache_method_name], *args, **kwargs, &block)
           end
         end
 
-        define_method(original_method_name) do |*args|
-          unless_proc = opts[:unless].is_a?(Symbol) ? opts[:unless].to_proc : opts[:unless]
-
-          if unless_proc&.call(self, original_method_name, args)
-            __send__(method_names[:without_cache_method_name], *args)
+        define_method(original_method_name) do |*args, **kwargs, &block|
+          if unless_proc&.call(self, original_method_name, args, **kwargs)
+            __send__(method_names[:without_cache_method_name], *args, **kwargs, &block)
           else
-            __send__(method_names[:with_cache_method_name], *args)
+            __send__(method_names[:with_cache_method_name], *args, **kwargs, &block)
           end
         end
       end
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
     def default_key_format
-      proc do |target, method_name, _method_args|
-        # By default, we omit the _method_args from the cache key because there is no acceptable default behavior
+      warned = false
+
+      proc do |target, method_name, method_args, **kwargs|
+        if !warned && (!method_args.empty? || !kwargs.empty?)
+          warn "Cacheable WARNING: '#{method_name}' is using the default key format but was called with " \
+               'arguments. Arguments are NOT included in the cache key, so different arguments will return ' \
+               'the same cached value. Provide a :key_format proc to include arguments in the cache key.'
+          warned = true
+        end
+
         class_name = (target.is_a?(Module) ? target.name : target.class.name)
         cache_key = target.respond_to?(:cache_key) ? target.cache_key : class_name
         [cache_key, method_name].compact

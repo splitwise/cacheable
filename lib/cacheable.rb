@@ -32,11 +32,14 @@ module Cacheable
   extend CacheAdapter
 
   def self.included(base)
+    base.extend(Cacheable::CacheAdapter)
     base.extend(Cacheable::MethodGenerator)
 
     interceptor_name = base.send(:method_interceptor_module_name)
-    remove_const(interceptor_name) if const_defined?(interceptor_name)
-
-    base.prepend const_set(interceptor_name, Module.new)
+    interceptor = Module.new
+    interceptor.define_singleton_method(:to_s) { interceptor_name }
+    interceptor.define_singleton_method(:inspect) { interceptor_name }
+    base.instance_variable_set(:@_cacheable_interceptor, interceptor)
+    base.prepend interceptor
   end
 end

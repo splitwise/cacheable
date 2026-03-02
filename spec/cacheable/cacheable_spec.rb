@@ -43,7 +43,7 @@ RSpec.describe Cacheable do
       arg = 'an argument'
       expect(cacheable_object).to receive(cacheable_method_inner).with(arg)
 
-      cacheable_object.send(cacheable_method, arg)
+      expect { cacheable_object.send(cacheable_method, arg) }.to output.to_stderr
     end
 
     it 'creates a method that can skip the cache' do
@@ -89,22 +89,17 @@ RSpec.describe Cacheable do
     end
 
     it 'uses the class name to define an interceptor module' do
-      # This is done specifically this way to be compatible w/ RSpec best practices
-      # Once Cacheable is included in a class, it uses the name of the class to define the
-      # interceptor module. However, it is considered bad practice to create constants in RSpec
-      # so they're typically made with `stub_const`. We need to include Cacheable after the
-      # anonymous class has been created and assigned to the stubbed constant for this order to work.
       stub_const('RealClassName', Class.new)
-      class_name = RealClassName.include(described_class)
+      RealClassName.include(described_class)
 
-      expect(class_name.ancestors.map(&:to_s)).to include("Cacheable::#{class_name}Cacher")
+      expect(RealClassName.ancestors.map(&:to_s)).to include('RealClassNameCacher')
     end
 
     it 'uses the class address to define an interceptor module for anonymous classes' do
       custom_class = Class.new { include Cacheable }
       class_name = custom_class.to_s.tr('#:<>', '')
 
-      expect(custom_class.ancestors.map(&:to_s)).to include("Cacheable::#{class_name}Cacher")
+      expect(custom_class.ancestors.map(&:to_s)).to include("#{class_name}Cacher")
     end
 
     context 'when the method name has special characters' do
@@ -126,8 +121,75 @@ RSpec.describe Cacheable do
         stub_const('Outer::Inner', Class.new)
         Outer::Inner.include(described_class)
 
-        expect(Outer::Inner.ancestors.map(&:to_s)).to include('Cacheable::OuterInnerCacher')
+        expect(Outer::Inner.ancestors.map(&:to_s)).to include('OuterInnerCacher')
       end
+    end
+  end
+
+  describe 'keyword arguments' do
+    it 'forwards keyword arguments to the original method' do
+      cacheable_class.class_eval do
+        define_method(:method_with_kwargs) do |name:, greeting: 'Hello'|
+          "#{greeting}, #{name}"
+        end
+
+        cacheable :method_with_kwargs, key_format: proc { |_, _, args, **kwargs| [args, kwargs] }
+      end
+
+      expect(cacheable_object.method_with_kwargs(name: 'World')).to eq('Hello, World')
+      expect(cacheable_object.method_with_kwargs(name: 'World', greeting: 'Hi')).to eq('Hi, World')
+    end
+
+    it 'forwards keyword arguments when skipping cache' do
+      cacheable_class.class_eval do
+        define_method(:kwargs_no_cache) do |val:|
+          val
+        end
+
+        cacheable :kwargs_no_cache, key_format: proc { |_, _, args, **kwargs| [args, kwargs] }
+      end
+
+      expect(cacheable_object.kwargs_no_cache_without_cache(val: 42)).to eq(42)
+    end
+
+    it 'forwards mixed positional and keyword arguments' do
+      cacheable_class.class_eval do
+        define_method(:mixed_args) do |pos, key:|
+          "#{pos}-#{key}"
+        end
+
+        cacheable :mixed_args, key_format: proc { |_, _, args, **kwargs| [args, kwargs] }
+      end
+
+      expect(cacheable_object.mixed_args('a', key: 'b')).to eq('a-b')
+    end
+  end
+
+  describe 'block forwarding' do
+    it 'forwards blocks to the original method on cache miss' do
+      cacheable_class.class_eval do
+        define_method(:method_with_block) do |&block|
+          block.call('from cache miss')
+        end
+
+        cacheable :method_with_block
+      end
+
+      result = cacheable_object.method_with_block { |msg| "got: #{msg}" }
+      expect(result).to eq('got: from cache miss')
+    end
+
+    it 'forwards blocks when skipping cache' do
+      cacheable_class.class_eval do
+        define_method(:block_no_cache) do |&block|
+          block.call('direct')
+        end
+
+        cacheable :block_no_cache
+      end
+
+      result = cacheable_object.block_no_cache_without_cache { |msg| "got: #{msg}" }
+      expect(result).to eq('got: direct')
     end
   end
 
@@ -156,9 +218,28 @@ RSpec.describe Cacheable do
           .to change { described_class.cache_adapter.exist?(key) }.from(false).to(true)
       end
 
-      it 'does not use the arguments to the method to determine the cache key' do
-        args = [1]
-        expect(cacheable_object.cacheable_method_key_format(*args)).to eq([cacheable_method])
+      it 'does not use positional arguments in the cache key and warns' do
+        cache_key = nil
+        expect { cache_key = cacheable_object.cacheable_method_key_format(1) }
+          .to output(/default key format.*arguments are NOT included/i).to_stderr
+        expect(cache_key).to eq([cacheable_method])
+      end
+
+      it 'does not use keyword arguments in the cache key and warns' do
+        cache_key = nil
+        expect { cache_key = cacheable_object.cacheable_method_key_format(foo: 1) }
+          .to output(/default key format.*arguments are NOT included/i).to_stderr
+        expect(cache_key).to eq([cacheable_method])
+      end
+
+      it 'only warns once per method' do
+        expect { cacheable_object.cacheable_method_key_format(1) }
+          .to output(/default key format/i).to_stderr
+        expect { cacheable_object.cacheable_method_key_format(2) }.not_to output.to_stderr
+      end
+
+      it 'does not warn when called without arguments' do
+        expect { cacheable_object.cacheable_method_key_format }.not_to output.to_stderr
       end
 
       it 'uses different keys for different cached values' do
@@ -177,8 +258,10 @@ RSpec.describe Cacheable do
         expect(cacheable_object).to receive(inner_method).with(arg1).once.and_call_original
         expect(cacheable_object).to receive(inner_method).with(arg2).once.and_call_original
 
-        2.times { expect(cacheable_object.send(cacheable_method, arg1)).to include(arg1) }
-        2.times { expect(cacheable_object.send(another_cacheable_method, arg2)).to include(arg2) }
+        expect do
+          2.times { expect(cacheable_object.send(cacheable_method, arg1)).to include(arg1) }
+          2.times { expect(cacheable_object.send(another_cacheable_method, arg2)).to include(arg2) }
+        end.to output.to_stderr
       end
 
       it 'uses the value of `cache_key` if the method is defined instead of the class' do
@@ -278,8 +361,10 @@ RSpec.describe Cacheable do
           cacheable(*local_variable_so_class_eval_works)
         end
 
-        expect(described_class.cache_adapter).to receive(:write).twice.and_call_original
         2.times { cache_methods.each { |method| cacheable_object.send(method) } }
+        cache_methods.each do |method|
+          expect(described_class.cache_adapter.exist?([method])).to be true
+        end
       end
 
       it 'uses the same options for cacheable methods declared on a single line' do
@@ -289,8 +374,10 @@ RSpec.describe Cacheable do
           cacheable(*local_variable_so_class_eval_works, unless: proc { true })
         end
 
-        expect(described_class.cache_adapter).not_to receive(:write)
         2.times { cache_methods.each { |method| cacheable_object.send(method) } }
+        cache_methods.each do |method|
+          expect(described_class.cache_adapter.exist?([method])).to be false
+        end
       end
 
       it 'can take strings' do
@@ -300,8 +387,10 @@ RSpec.describe Cacheable do
           cacheable(*cache_methods_as_strings)
         end
 
-        expect(described_class.cache_adapter).to receive(:write).twice.and_call_original
         2.times { cache_methods.each { |method| cacheable_object.send(method) } }
+        cache_methods_as_strings.each do |method|
+          expect(described_class.cache_adapter.exist?([method])).to be true
+        end
       end
 
       it 'can take strings before the method is defined' do
@@ -434,6 +523,20 @@ RSpec.describe Cacheable do
       expect(cacheable_object).to receive(inner_method).twice.and_call_original
       2.times { cacheable_object.send(cache_depends_on_args, the_method_arg) }
     end
+
+    it 'passes kwargs to the `unless` proc' do
+      cache_depends_on_kwargs = :cache_depends_on_kwargs
+      inner_method = cacheable_method_inner
+      cacheable_class.class_eval do
+        define_method(cache_depends_on_kwargs) do |force: false| # rubocop:disable Lint/UnusedBlockArgument
+          send inner_method
+        end
+
+        cacheable cache_depends_on_kwargs, unless: proc { |_, _, _, force: false| force }
+      end
+      expect(cacheable_object).to receive(inner_method).twice.and_call_original
+      2.times { cacheable_object.send(cache_depends_on_kwargs, force: true) }
+    end
   end
 
   describe 'on class methods' do
@@ -447,6 +550,37 @@ RSpec.describe Cacheable do
       key = AnotherTotallyRealClassName.cacheable_method_key_format
 
       expect(key).to eq([cacheable_class.name, cacheable_method])
+    end
+  end
+
+  describe 'per-class cache adapter' do
+    it 'falls back to the global adapter by default' do
+      expect(cacheable_class.cache_adapter).to eq(described_class.cache_adapter)
+    end
+
+    it 'allows setting a class-specific adapter' do
+      class_adapter = Cacheable::CacheAdapters::MemoryAdapter.new
+      cacheable_class.cache_adapter = class_adapter
+
+      expect(cacheable_class.cache_adapter).to eq(class_adapter)
+      expect(cacheable_class.cache_adapter).not_to eq(described_class.cache_adapter)
+    end
+
+    it 'uses the class adapter for caching when set' do
+      class_adapter = Cacheable::CacheAdapters::MemoryAdapter.new
+      cacheable_class.cache_adapter = class_adapter
+
+      cacheable_object.send(cacheable_method)
+      expect(class_adapter.exist?([cacheable_method])).to be true
+      expect(described_class.cache_adapter.exist?([cacheable_method])).to be false
+    end
+
+    it 'does not affect other classes' do
+      other_class = Class.new.tap { |klass| klass.class_exec(&class_definition) }
+      class_adapter = Cacheable::CacheAdapters::MemoryAdapter.new
+      cacheable_class.cache_adapter = class_adapter
+
+      expect(other_class.cache_adapter).to eq(described_class.cache_adapter)
     end
   end
 

@@ -254,6 +254,52 @@ If your cache backend supports options, you can pass them as the `cache_options:
 cacheable :with_options, cache_options: {expires_in: 3_600}
 ```
 
+### Memoization
+
+By default, every call to a cached method hits the cache adapter, which includes deserialization. For methods where the deserialized object is expensive to reconstruct (e.g., large ActiveRecord collections), you can enable per-instance memoization so that repeated calls on the **same object** skip the adapter entirely:
+
+```ruby
+# From examples/memoize_example.rb
+
+class ExpensiveService
+  include Cacheable
+
+  cacheable :without_memoize
+
+  cacheable :with_memoize, memoize: true
+
+  def without_memoize
+    puts '  [method] computing value'
+    42
+  end
+
+  def with_memoize
+    puts '  [method] computing value'
+    42
+  end
+end
+```
+
+Using a logging adapter wrapper (see `examples/memoize_example.rb` for the full setup), the difference becomes clear:
+
+```
+--- without memoize ---
+  [cache] fetch ["ExpensiveService", :without_memoize]
+  [method] computing value
+  [cache] fetch ["ExpensiveService", :without_memoize]    <-- adapter hit again (deserialization cost)
+
+--- with memoize: true ---
+  [cache] fetch ["ExpensiveService", :with_memoize]
+  [method] computing value
+                                                           <-- no adapter hit on second call
+
+--- after clearing ---
+  [cache] fetch ["ExpensiveService", :with_memoize]       <-- adapter hit again after clear
+  [method] computing value
+```
+
+**Important**: Memoized values persist for the lifetime of the object instance, and after the first call they bypass the cache adapter entirely. This means adapter-driven expiration (`expires_in`) and other backend invalidation mechanisms will **not** be re-checked while the instance stays alive. If your cache key changes (e.g., `cache_key` based on `updated_at`), the memoized value will also **not** automatically update. This is especially important for class-method memoization (where the "instance" is the class itself), because the memo can effectively outlive the cache TTL. Use `memoize: true` only when you know the value will not change for the lifetime of the instance (or class), or call `clear_#{method}_cache` explicitly when needed.
+
 ### Per-Class Cache Adapter
 
 By default, all classes use the global adapter set via `Cacheable.cache_adapter`. If you need a specific class to use a different cache backend, you can set one directly on the class:

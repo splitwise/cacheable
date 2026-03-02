@@ -598,4 +598,192 @@ RSpec.describe Cacheable do
     expect(described_class.cache_adapter).to receive(:fetch).with(anything, hash_including(cache_options))
     cacheable_object.send(cache_method_with_cache_options)
   end
+
+  describe 'memoization' do
+    let(:class_definition) do
+      cacheable_method_name = cacheable_method
+      cacheable_method_inner_name = cacheable_method_inner
+      mod = described_class
+      proc do
+        include mod
+
+        define_method(cacheable_method_name) do |arg = nil|
+          send cacheable_method_inner_name, arg
+        end
+
+        define_method(cacheable_method_inner_name) do |arg = nil|
+          "a unique value with arg #{arg}"
+        end
+
+        cacheable cacheable_method_name, memoize: true
+      end
+    end
+
+    it 'returns the expected value' do
+      expect(cacheable_object.send(cacheable_method)).to eq(cacheable_object.send(cacheable_method_inner))
+    end
+
+    it 'only hits the cache adapter once for repeated calls' do
+      adapter = described_class.cache_adapter
+      expect(adapter).to receive(:fetch).once.and_call_original
+
+      2.times { cacheable_object.send(cacheable_method) }
+    end
+
+    it 'different instances have independent memoization' do
+      obj1 = cacheable_class.new
+      obj2 = cacheable_class.new
+
+      obj1.send(cacheable_method)
+      obj2.send(cacheable_method)
+
+      # Each should have its own memo store
+      expect(obj1.instance_variable_get(:@_cacheable_memoized)).not_to be(obj2.instance_variable_get(:@_cacheable_memoized))
+    end
+
+    it 'memoizes different arguments independently when key_format includes args' do
+      args_method = :args_memoize_method
+      inner_method = cacheable_method_inner
+      cacheable_class.class_eval do
+        define_method(args_method) do |arg|
+          send inner_method, arg
+        end
+
+        cacheable args_method, memoize: true, key_format: proc { |target, method_name, method_args|
+          [target.class, method_name, method_args]
+        }
+      end
+
+      adapter = described_class.cache_adapter
+      expect(adapter).to receive(:fetch).twice.and_call_original
+
+      2.times { cacheable_object.send(args_method, 'arg1') }
+      2.times { cacheable_object.send(args_method, 'arg2') }
+    end
+
+    it 'clears memoized value when clear_cache is called' do
+      adapter = described_class.cache_adapter
+      expect(adapter).to receive(:fetch).twice.and_call_original
+
+      cacheable_object.send(cacheable_method)
+      cacheable_object.send("clear_#{cacheable_method}_cache")
+      cacheable_object.send(cacheable_method)
+    end
+
+    it 'clears only the targeted key when clear_cache is called with args' do
+      args_method = :args_clear_memoize_method
+      inner_method = cacheable_method_inner
+      cacheable_class.class_eval do
+        define_method(args_method) do |arg|
+          send inner_method, arg
+        end
+
+        cacheable args_method, memoize: true, key_format: proc { |target, method_name, method_args|
+          [target.class, method_name, method_args]
+        }
+      end
+
+      adapter = described_class.cache_adapter
+      expect(adapter).to receive(:fetch).exactly(3).times.and_call_original
+
+      cacheable_object.send(args_method, 'arg1') # fetch 1
+      cacheable_object.send(args_method, 'arg2') # fetch 2
+      cacheable_object.send(args_method, 'arg1') # memoized, no fetch
+
+      cacheable_object.send("clear_#{args_method}_cache", 'arg1')
+
+      cacheable_object.send(args_method, 'arg1') # fetch 3 (cleared)
+      cacheable_object.send(args_method, 'arg2') # still memoized, no fetch
+    end
+
+    it 'does not memoize when unless proc is true' do
+      skip_method = :skip_memoize_method
+      inner_method = cacheable_method_inner
+      cacheable_class.class_eval do
+        define_method(skip_method) do
+          send inner_method
+        end
+
+        cacheable skip_method, memoize: true, unless: proc { true }
+      end
+
+      expect(cacheable_object).to receive(inner_method).twice.and_call_original
+      2.times { cacheable_object.send(skip_method) }
+    end
+
+    it 'memoizes nil return values' do
+      nil_method = :nil_memoize_method
+      call_count = 0
+      cacheable_class.class_eval do
+        define_method(nil_method) do
+          call_count += 1
+          nil
+        end
+
+        cacheable nil_method, memoize: true
+      end
+
+      2.times { cacheable_object.send(nil_method) }
+      expect(call_count).to eq(1)
+    end
+
+    it 'memoizes false return values' do
+      false_method = :false_memoize_method
+      call_count = 0
+      cacheable_class.class_eval do
+        define_method(false_method) do
+          call_count += 1
+          false
+        end
+
+        cacheable false_method, memoize: true
+      end
+
+      2.times { cacheable_object.send(false_method) }
+      expect(call_count).to eq(1)
+    end
+
+    it 'does not set @_cacheable_memoized when memoize is not used' do
+      non_memo_class = Class.new.tap do |klass|
+        klass.class_exec do
+          include Cacheable
+
+          def some_method
+            'value'
+          end
+
+          cacheable :some_method
+        end
+      end
+
+      obj = non_memo_class.new
+      obj.some_method
+      expect(obj.instance_variable_defined?(:@_cacheable_memoized)).to be false
+    end
+
+    it 'passes cache_options to the adapter on the first call' do
+      opts_method = :opts_memoize_method
+      cache_options = {expires_in: 3_600}
+      cacheable_class.class_eval do
+        define_method(opts_method) { 'value' }
+        cacheable opts_method, memoize: true, cache_options: cache_options
+      end
+
+      expect(described_class.cache_adapter).to receive(:fetch).with(anything, hash_including(cache_options)).once.and_call_original
+      2.times { cacheable_object.send(opts_method) }
+    end
+
+    context 'with class methods' do
+      let(:cacheable_class) do
+        Class.new.tap { |klass| klass.singleton_class.class_exec(&class_definition) }
+      end
+
+      it 'memoizes class method calls' do
+        adapter = described_class.cache_adapter
+        expect(adapter).to receive(:fetch).once.and_call_original
+
+        2.times { cacheable_class.send(cacheable_method) }
+      end
+    end
+  end
 end
